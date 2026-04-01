@@ -711,9 +711,14 @@ async function init(){
   try {
     prompts = await sbGetAll();
     if(prompts.length === 0) {
-      // First run — seed Supabase with all data
+      // First run — seed Supabase with all data in one batch request
       showStatus('First run — seeding database...', '#7c3aed');
-      for(const p of SEED) await sbUpsert(p);
+      const res = await fetch(`${SB_URL}/rest/v1/prompts`, {
+        method: 'POST',
+        headers: { ...SB_HDR, 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify(SEED.map(toRow)),
+      });
+      if(!res.ok) throw new Error(await res.text());
       prompts = SEED;
       showStatus('Database seeded ✓', '#16a34a');
     } else {
